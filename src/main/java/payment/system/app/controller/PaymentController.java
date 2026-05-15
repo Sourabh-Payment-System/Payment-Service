@@ -21,4 +21,5 @@ public class PaymentController {
     public Transaction transfer(@RequestBody TransferRequest request) {
         return paymentService.transferMoney(request);
     }
+    
 }
