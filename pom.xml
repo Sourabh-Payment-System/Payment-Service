@@ -15,9 +15,9 @@
     </parent>
 
     <groupId>com.paymentsystem</groupId>
-    <artifactId>payment-system</artifactId>
+    <artifactId>payment-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>payment-system</name>
+    <name>payment-service</name>
 
     <properties>
         <java.version>21</java.version>
