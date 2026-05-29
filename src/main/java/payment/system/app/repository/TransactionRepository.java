@@ -1,11 +1,13 @@
 package payment.system.app.repository;
 
-import payment.system.app.entity.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import payment.system.app.entity.Transaction;
 
-public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+@Repository
+public interface TransactionRepository
+        extends JpaRepository<Transaction, Long> {
 
-    List<Transaction> findBySenderIdOrReceiverId(Long senderId, Long receiverId);
+    
 }

@@ -14,10 +14,10 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.paymentsystem</groupId>
-    <artifactId>payment-system</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>payment-system</name>
+    <groupId>com.paymentservice</groupId>
+    <artifactId>payment-service</artifactId>
+    <version>0.0.2-SNAPSHOT</version>
+    <name>payment-service</name>
 
     <properties>
         <java.version>21</java.version>
