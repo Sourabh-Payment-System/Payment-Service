@@ -22,6 +22,7 @@ public class TransferRequest {
     @NotNull(message = "Amount is required")
     @DecimalMin(
             value = "1.0",
+            inclusive = true,
             message = "Amount must be greater than 0")
     private BigDecimal amount;
 }

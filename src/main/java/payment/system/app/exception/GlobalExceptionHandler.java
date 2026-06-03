@@ -92,8 +92,7 @@ public class GlobalExceptionHandler {
         log.error(
                 "Payment processing exception occurred: path={}, message={}",
                 request.getRequestURI(),
-                ex.getMessage(),
-                ex);
+                ex.getMessage());
 
         return buildErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -389,5 +388,25 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(
                 errorResponse,
                 status);
+    }
+    @ExceptionHandler(WalletServiceException.class)
+    public ResponseEntity<ErrorResponse>
+    handleWalletServiceException(
+            WalletServiceException ex,
+            HttpServletRequest request) {
+
+        log.error(
+                "Wallet service exception occurred: path={}, status={}, message={}",
+                request.getRequestURI(),
+                ex.getStatusCode(),
+                ex.getMessage());
+
+        return buildErrorResponse(
+                HttpStatus.valueOf(
+                        ex.getStatusCode()),
+                "WALLET_SERVICE_ERROR",
+                ex.getMessage(),
+                request.getRequestURI(),
+                null);
     }
 }

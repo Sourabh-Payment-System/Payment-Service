@@ -10,7 +10,9 @@ import lombok.Data;
 @Builder
 public class TransactionResponse {
 
-    private String transactionReference;
+	private String wallettransactionReference;
+	
+	private String transactionReference;
 
     private Long senderUserId;
 

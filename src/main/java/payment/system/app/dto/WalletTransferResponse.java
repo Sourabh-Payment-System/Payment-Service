@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 
 import lombok.Builder;
 import lombok.Data;
+import payment.system.app.enums.PaymentStatus;
 
 @Data
 @Builder
@@ -22,7 +23,7 @@ public class WalletTransferResponse {
 
     private BigDecimal receiverBalance;
 
-    private String status;
+    private PaymentStatus status;
 
     private LocalDateTime timestamp;
 }

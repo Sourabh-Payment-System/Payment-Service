@@ -3,24 +3,28 @@ package payment.system.app.entity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import org.hibernate.resource.transaction.spi.TransactionStatus;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+
+import lombok.*;
+
 import payment.system.app.enums.PaymentStatus;
 
 @Entity
-@Table(name = "transactions")
+@Table(
+        name = "transactions",
+        indexes = {
+                @Index(
+                        name = "idx_transaction_reference",
+                        columnList = "transactionReference"),
+                @Index(
+                        name = "idx_wallet_transaction_reference",
+                        columnList = "walletTransactionReference")
+        })
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @Builder
@@ -32,16 +36,44 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(
+            nullable = false,
+            unique = true,
+            length = 20)
     private String transactionReference;
 
+    @Column(
+            unique = true,
+            length = 50)
+    private String walletTransactionReference;
+
+    @Column(nullable = false)
     private Long senderUserId;
 
+    @Column(nullable = false)
     private Long receiverUserId;
 
+    @Column(
+            nullable = false,
+            precision = 19,
+            scale = 2)
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private PaymentStatus status;
 
+    @CreatedDate
+    @Column(
+            nullable = false,
+            updatable = false)
     private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 }
