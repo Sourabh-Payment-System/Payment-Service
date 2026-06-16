@@ -2,9 +2,10 @@ package payment.system.app.facade;
 
 import static payment.system.app.constants.ApiConstants.WALLET_TRANSFER_ENDPOINT;
 
-import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import org.springframework.http.HttpStatusCode;
+import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -14,16 +15,17 @@ import org.springframework.web.client.RestClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import payment.system.app.config.WalletProperties;
 import payment.system.app.dto.TransferRequest;
 import payment.system.app.dto.WalletTransferResponse;
+import payment.system.app.enums.ErrorCode;
 import payment.system.app.exception.BadRequestException;
 import payment.system.app.exception.PaymentProcessingException;
 import payment.system.app.exception.WalletServiceException;
-import org.springframework.retry.annotation.Backoff;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 @Service
 @RequiredArgsConstructor
@@ -36,16 +38,16 @@ public class WalletRetryService {
 
     @CircuitBreaker(
             name = "walletService",
-            fallbackMethod = "walletCircuitBreakerFallback"
-    )
+            fallbackMethod = "walletCircuitBreakerFallback")
     @Retryable(
             retryFor = {
                     ResourceAccessException.class,
                     WalletServiceException.class
             },
             maxAttempts = 3,
-            backoff = @Backoff(delay = 2000, multiplier = 2)
-    )
+            backoff = @Backoff(
+                    delay = 2000,
+                    multiplier = 2))
     public WalletTransferResponse doTransfer(
             TransferRequest request) {
 
@@ -54,7 +56,7 @@ public class WalletRetryService {
                         + WALLET_TRANSFER_ENDPOINT;
 
         log.info(
-                "Calling Wallet Service. senderUserId={}, receiverUserId={}, amount={}, url={}",
+                "Calling wallet service. senderUserId={}, receiverUserId={}, amount={}, url={}",
                 request.getSenderUserId(),
                 request.getReceiverUserId(),
                 request.getAmount(),
@@ -69,26 +71,36 @@ public class WalletRetryService {
                         (req, res) -> {
 
                             String responseBody =
-                                    new String(res.getBody().readAllBytes());
+                                    new String(
+                                            res.getBody().readAllBytes(),
+                                            StandardCharsets.UTF_8);
+
+                            String message = "Bad Request";
 
                             try {
 
-
                                 JsonNode jsonNode =
-                                        objectMapper.readTree(responseBody);
+                                        objectMapper.readTree(
+                                                responseBody);
 
-                                String errorMessage =
+                                message =
                                         jsonNode.path("message")
                                                 .asText("Bad Request");
 
-                                throw new BadRequestException(
-                                        errorMessage);
+                            } catch (Exception ignored) {
 
-                            } catch (IOException e) {
-
-                                throw new BadRequestException(
-                                        "Bad Request");
+                                log.warn(
+                                        "Unable to parse wallet error response={}",
+                                        responseBody);
                             }
+
+                            log.warn(
+                                    "Wallet business validation failed. status={}, message={}",
+                                    res.getStatusCode().value(),
+                                    message);
+
+                            throw new BadRequestException(
+                                    message);
                         })
                 .onStatus(
                         HttpStatusCode::is5xxServerError,
@@ -96,11 +108,16 @@ public class WalletRetryService {
 
                             String responseBody =
                                     new String(
-                                            res.getBody()
-                                                    .readAllBytes());
+                                            res.getBody().readAllBytes(),
+                                            StandardCharsets.UTF_8);
+
+                            log.error(
+                                    "Wallet service returned server error. status={}, response={}",
+                                    res.getStatusCode().value(),
+                                    responseBody);
 
                             throw new WalletServiceException(
-                                    "Wallet Internal Error",
+                                    "Wallet service internal error",
                                     res.getStatusCode().value(),
                                     responseBody);
                         })
@@ -112,8 +129,13 @@ public class WalletRetryService {
             ResourceAccessException ex,
             TransferRequest request) {
 
-        throw new PaymentProcessingException(
-                "Wallet service timeout after retry attempts");
+        log.error(
+                "Wallet service timeout after all retry attempts. senderUserId={}, receiverUserId={}",
+                request.getSenderUserId(),
+                request.getReceiverUserId(),
+                ex);
+
+        throw ex;
     }
 
     @Recover
@@ -121,25 +143,101 @@ public class WalletRetryService {
             WalletServiceException ex,
             TransferRequest request) {
 
-        throw new PaymentProcessingException(
-                "Wallet service unavailable after retry attempts");
+        log.error(
+                "Wallet service unavailable after all retry attempts. senderUserId={}, receiverUserId={}, statusCode={}",
+                request.getSenderUserId(),
+                request.getReceiverUserId(),
+                ex.getStatusCode(),
+                ex);
+
+        throw ex;
     }
+
     @Recover
     public WalletTransferResponse recover(
             BadRequestException ex,
             TransferRequest request) {
 
+        log.warn(
+                "Wallet business validation failed. senderUserId={}, receiverUserId={}, message={}",
+                request.getSenderUserId(),
+                request.getReceiverUserId(),
+                ex.getMessage());
+
         throw ex;
     }
+
+    public WalletTransferResponse walletCircuitBreakerFallback(
+            TransferRequest request,
+            BadRequestException ex) {
+
+        log.warn(
+                "Wallet business validation error. senderUserId={}, receiverUserId={}, message={}",
+                request.getSenderUserId(),
+                request.getReceiverUserId(),
+                ex.getMessage());
+
+        throw ex;
+    }
+
+    public WalletTransferResponse walletCircuitBreakerFallback(
+            TransferRequest request,
+            WalletServiceException ex) {
+
+        log.error(
+                "Circuit breaker fallback triggered. senderUserId={}, receiverUserId={}, statusCode={}",
+                request.getSenderUserId(),
+                request.getReceiverUserId(),
+                ex.getStatusCode(),
+                ex);
+
+        throw new PaymentProcessingException(
+                ErrorCode.WALLET_SERVICE_ERROR,
+                "Wallet service is currently unavailable");
+    }
+
+    public WalletTransferResponse walletCircuitBreakerFallback(
+            TransferRequest request,
+            ResourceAccessException ex) {
+
+        log.error(
+                "Wallet timeout fallback triggered. senderUserId={}, receiverUserId={}",
+                request.getSenderUserId(),
+                request.getReceiverUserId(),
+                ex);
+
+        throw new PaymentProcessingException(
+                ErrorCode.WALLET_SERVICE_ERROR,
+                "Wallet service request timed out");
+    }
+
+    public WalletTransferResponse walletCircuitBreakerFallback(
+            TransferRequest request,
+            CallNotPermittedException ex) {
+
+        log.error(
+                "Circuit breaker OPEN. senderUserId={}, receiverUserId={}",
+                request.getSenderUserId(),
+                request.getReceiverUserId(),
+                ex);
+
+        throw new PaymentProcessingException(
+                ErrorCode.WALLET_SERVICE_ERROR,
+                "Wallet service temporarily unavailable");
+    }
+
     public WalletTransferResponse walletCircuitBreakerFallback(
             TransferRequest request,
             Exception ex) {
 
         log.error(
-                "Wallet circuit breaker activated. reason={}",
-                ex.getMessage());
+                "Unexpected wallet service failure. senderUserId={}, receiverUserId={}",
+                request.getSenderUserId(),
+                request.getReceiverUserId(),
+                ex);
 
         throw new PaymentProcessingException(
+                ErrorCode.WALLET_SERVICE_ERROR,
                 "Wallet service temporarily unavailable");
     }
 }

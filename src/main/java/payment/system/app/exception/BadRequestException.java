@@ -1,9 +1,15 @@
 package payment.system.app.exception;
 
-public class BadRequestException
-        extends RuntimeException {
 
-    public BadRequestException(String message) {
-        super(message);
+import payment.system.app.enums.ErrorCode;
+public class BadRequestException
+        extends BaseApplicationException {
+
+    public BadRequestException(
+            String message) {
+
+        super(
+                ErrorCode.BAD_REQUEST,
+                message);
     }
 }

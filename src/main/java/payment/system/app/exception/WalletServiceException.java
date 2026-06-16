@@ -1,10 +1,11 @@
 package payment.system.app.exception;
 
 import lombok.Getter;
+import payment.system.app.enums.ErrorCode;
 
 @Getter
 public class WalletServiceException
-        extends RuntimeException {
+        extends BaseApplicationException {
 
     private final int statusCode;
 
@@ -15,7 +16,9 @@ public class WalletServiceException
             int statusCode,
             String errorResponse) {
 
-        super(message);
+        super(
+                ErrorCode.WALLET_SERVICE_ERROR,
+                message);
 
         this.statusCode = statusCode;
         this.errorResponse = errorResponse;

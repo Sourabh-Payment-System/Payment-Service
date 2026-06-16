@@ -14,33 +14,17 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ErrorResponse {
 
-    /**
-     * Error timestamp
-     */
     private LocalDateTime timestamp;
 
-    /**
-     * HTTP status code
-     */
     private Integer status;
 
-    /**
-     * Error type
-     */
     private String error;
 
-    /**
-     * Error message
-     */
+    private String errorCode;
+
     private String message;
 
-    /**
-     * API path
-     */
     private String path;
 
-    /**
-     * Validation errors
-     */
     private Map<String, String> validationErrors;
 }

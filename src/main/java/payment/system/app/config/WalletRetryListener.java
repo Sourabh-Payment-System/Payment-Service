@@ -9,42 +9,31 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class WalletRetryListener
-        implements RetryListener {
+public class WalletRetryListener implements RetryListener {
 	@Override
-	public <T, E extends Throwable> boolean open(
-	        RetryContext context,
-	        RetryCallback<T, E> callback) {
+	public <T, E extends Throwable> boolean open(RetryContext context, RetryCallback<T, E> callback) {
 
-	    log.info("Starting wallet retry operation");
+		log.info("Starting retryable wallet operation");
 
-	    return true;
+		return true;
 	}
 
-    @Override
-    public <T, E extends Throwable> void onError(
-            RetryContext context,
-            RetryCallback<T, E> callback,
-            Throwable throwable) {
+	@Override
+	public <T, E extends Throwable> void onError(RetryContext context, RetryCallback<T, E> callback,
+			Throwable throwable) {
 
-        log.warn(
-                "Retry attempt={} exceptionType={} message={}",
-                context.getRetryCount(),
-                throwable.getClass().getSimpleName(),
-                throwable.getMessage());
-    }
+		log.warn("Retry attempt={} exceptionType={} message={}", context.getRetryCount(),
+				throwable.getClass().getSimpleName(), throwable.getMessage());
+	}
 
-    @Override
-    public <T, E extends Throwable> void close(
-            RetryContext context,
-            RetryCallback<T, E> callback,
-            Throwable throwable) {
+	@Override
+	public <T, E extends Throwable> void close(RetryContext context, RetryCallback<T, E> callback,
+			Throwable throwable) {
 
-    	if (throwable != null) {
+		if (throwable != null) {
 
-    	    log.error(
-    	        "Retry operation finished with exception after {} retry attempts",
-    	        context.getRetryCount(),
-    	        throwable);
-    	}    }
+			log.error("Retry operation finished with exception after {} retry attempts", context.getRetryCount(),
+					throwable);
+		}
+	}
 }

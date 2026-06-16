@@ -1,8 +1,15 @@
 package payment.system.app.exception;
 
-public class InsufficientBalanceException extends RuntimeException {
+import payment.system.app.enums.ErrorCode;
 
-    public InsufficientBalanceException(String message) {
-        super(message);
+public class InsufficientBalanceException
+        extends BaseApplicationException {
+
+    public InsufficientBalanceException(
+            String message) {
+
+        super(
+                ErrorCode.INSUFFICIENT_BALANCE,
+                message);
     }
 }

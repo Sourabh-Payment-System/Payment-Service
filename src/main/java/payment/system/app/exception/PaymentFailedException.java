@@ -1,18 +1,25 @@
 package payment.system.app.exception;
 
+import payment.system.app.enums.ErrorCode;
+
 public class PaymentFailedException
-        extends RuntimeException {
+        extends BaseApplicationException {
 
     public PaymentFailedException(
             String message) {
 
-        super(message);
+        super(
+                ErrorCode.PAYMENT_FAILED,
+                message);
     }
 
     public PaymentFailedException(
             String message,
-            Throwable ex) {
+            Throwable cause) {
 
-        super(message, ex);
+        super(
+                ErrorCode.PAYMENT_FAILED,
+                message,
+                cause);
     }
 }

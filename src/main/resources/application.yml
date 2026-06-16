@@ -33,6 +33,9 @@ spring:
       indent-output: true
 
 logging:
+  file:
+    name: logs/payment-service.log
+
 
   level:
 
@@ -46,29 +49,53 @@ logging:
 
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
+    io.github.resilience4j.circuitbreaker: DEBUG
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [requestId=%X{requestId}] [txnRef=%X{transactionRef}] [txnId=%X{transactionId}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [requestId=%X{requestId}] [txnRef=%X{transactionRef}] [txnId=%X{transactionId}] %logger{36} - %msg%n"
 wallet:
   service:
     base-url: http://localhost:8084
+    connect-timeout: 5000
+    read-timeout: 10000
 
 management:
 
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,circuitbreakers,circuitbreakerevents
 
   endpoint:
     health:
       show-details: always
 
 resilience4j:
+
   circuitbreaker:
+
     instances:
+
       walletService:
+
         slidingWindowType: COUNT_BASED
+
         slidingWindowSize: 10
+
         minimumNumberOfCalls: 5
+
         failureRateThreshold: 50
+
         waitDurationInOpenState: 30s
+
         permittedNumberOfCallsInHalfOpenState: 3
-        automaticTransitionFromOpenToHalfOpenEnabled: true							
+
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
+        recordExceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - payment.system.app.exception.WalletServiceException
+
+        ignoreExceptions:
+          - payment.system.app.exception.BadRequestException

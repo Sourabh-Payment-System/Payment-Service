@@ -1,8 +1,15 @@
 package payment.system.app.exception;
 
-public class ResourceNotFoundException extends RuntimeException {
+import payment.system.app.enums.ErrorCode;
 
-    public ResourceNotFoundException(String message) {
-        super(message);
+public class ResourceNotFoundException
+        extends BaseApplicationException {
+
+    public ResourceNotFoundException(
+            String message) {
+
+        super(
+                ErrorCode.RESOURCE_NOT_FOUND,
+                message);
     }
 }
