@@ -1,6 +1,9 @@
 package payment.system.app.service;
 
+import static payment.system.app.constants.TransactionConstants.TRANSACTION_PREFIX;
 import static payment.system.app.constants.TransactionConstants.TRANSACTION_REFERENCE_LENGTH;
+
+import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -9,12 +12,14 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import payment.system.app.dto.IdempotencyResult;
+import payment.system.app.dto.TransferRequest;
 import payment.system.app.entity.IdempotencyRecord;
 import payment.system.app.enums.IdempotencyStatus;
+import payment.system.app.exception.BadRequestException;
 import payment.system.app.exception.IdempotencyRecordNotFoundException;
 import payment.system.app.repository.IdempotencyRepository;
 import payment.system.app.utility.ReferenceGenerator;
-
+import payment.system.app.utility.TransferRequestHasher;
 
 @Service
 @RequiredArgsConstructor
@@ -22,19 +27,30 @@ import payment.system.app.utility.ReferenceGenerator;
 public class IdempotencyService {
 
     private final IdempotencyRepository repository;
+
     private final ReferenceGenerator referenceGenerator;
+
+    private final TransferRequestHasher requestHasher;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public IdempotencyResult getOrCreateProcessingRecord(
-            String idempotencyKey) {
+            String idempotencyKey,
+            TransferRequest request) {
 
         String transactionReference =
-        		referenceGenerator.generateReference(TRANSACTION_REFERENCE_LENGTH);
+                TRANSACTION_PREFIX
+                + referenceGenerator.generateReference(
+                        TRANSACTION_REFERENCE_LENGTH);
+
+        String requestHash =
+                requestHasher.generateHash(
+                        request);
 
         int rowsInserted =
                 repository.insertIfAbsent(
                         idempotencyKey,
-                        transactionReference);
+                        transactionReference,
+                        requestHash);
 
         IdempotencyRecord record =
                 repository.findByIdempotencyKeyForUpdate(
@@ -43,11 +59,20 @@ public class IdempotencyService {
                                 new IdempotencyRecordNotFoundException(
                                         idempotencyKey));
 
+        if (record.getRequestHash() != null
+                && !record.getRequestHash()
+                        .equals(requestHash)) {
+
+            throw new BadRequestException(
+                    "Idempotency key reused with different request");
+        }
+
+        
+
         return new IdempotencyResult(
                 record,
                 rowsInserted == 1);
     }
-
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markSuccess(
@@ -66,6 +91,9 @@ public class IdempotencyService {
 
         record.setResponseJson(
                 responseJson);
+
+        record.setCompletedAt(
+                LocalDateTime.now());
 
         repository.save(
                 record);
@@ -89,15 +117,14 @@ public class IdempotencyService {
         if (record.getStatus()
                 == IdempotencyStatus.SUCCESS) {
 
-            log.warn(
-                    "Skipping FAILED update because record already SUCCESS. key={}",
-                    idempotencyKey);
-
             return;
         }
 
         record.setStatus(
                 IdempotencyStatus.FAILED);
+
+        record.setCompletedAt(
+                LocalDateTime.now());
 
         repository.save(
                 record);
@@ -106,7 +133,6 @@ public class IdempotencyService {
                 "Idempotency record marked FAILED. key={}",
                 idempotencyKey);
     }
-
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void resetToProcessing(
             String idempotencyKey,
@@ -126,6 +152,12 @@ public class IdempotencyService {
                 transactionReference);
 
         record.setResponseJson(
+                null);
+
+        record.setProcessingStartedAt(
+                LocalDateTime.now());
+
+        record.setCompletedAt(
                 null);
 
         repository.save(

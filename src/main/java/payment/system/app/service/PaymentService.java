@@ -6,6 +6,7 @@ import static payment.system.app.constants.LogMessages.MDC_TRANSACTION_REF;
 import static payment.system.app.constants.LogMessages.SAME_USER_TRANSFER_ATTEMPT;
 import static payment.system.app.constants.TransactionConstants.TRANSACTION_REFERENCE_LENGTH;
 import static payment.system.app.constants.TransactionConstants.TRANSACTION_PREFIX;
+import static payment.system.app.constants.TransactionConstants.PROCESSING_TIMEOUT_MINUTES;
 
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ import payment.system.app.exception.PaymentProcessingException;
 import payment.system.app.facade.WalletFacadeService;
 import payment.system.app.mapper.TransactionMapper;
 import payment.system.app.utility.ReferenceGenerator;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -53,7 +55,11 @@ public class PaymentService {
 
 		try {
 
-			IdempotencyResult result = idempotencyService.getOrCreateProcessingRecord(idempotencyKey);
+			IdempotencyResult result =
+			        idempotencyService
+			                .getOrCreateProcessingRecord(
+			                        idempotencyKey,
+			                        request);
 
 			IdempotencyRecord record = result.getRecord();
 
@@ -73,6 +79,12 @@ public class PaymentService {
 							transactionReference);
 
 					try {
+						if (record.getResponseJson() == null) {
+
+						    throw new PaymentProcessingException(
+						            ErrorCode.PAYMENT_PROCESSING_ERROR,
+						            "Cached response missing");
+						}
 
 						return objectMapper.readValue(record.getResponseJson(), TransactionResponse.class);
 
@@ -84,8 +96,32 @@ public class PaymentService {
 
 				case PROCESSING:
 
-					throw new PaymentProcessingException(ErrorCode.PAYMENT_PROCESSING_ERROR,
-							"Payment already in progress");
+				    if (isProcessingExpired(record)) {
+
+				        transactionReference =
+				        		TRANSACTION_PREFIX+generateTransactionReference();
+
+				        MDC.put(
+				                MDC_TRANSACTION_REF,
+				                transactionReference);
+
+				        log.warn(
+				                "Recovering stale PROCESSING record. idempotencyKey={}, transactionRef={}",
+				                idempotencyKey,
+				                transactionReference);
+
+				        idempotencyService.resetToProcessing(
+				                idempotencyKey,
+				                transactionReference);
+
+				        paymentOwnedByCurrentRequest = true;
+
+				        break;
+				    }
+
+				    throw new PaymentProcessingException(
+				            ErrorCode.PAYMENT_PROCESSING_ERROR,
+				            "Payment already in progress");
 
 				case FAILED:
 
@@ -246,5 +282,19 @@ public class PaymentService {
 			throw new PaymentProcessingException(ErrorCode.PAYMENT_PROCESSING_ERROR,
 					"Unable to serialize payment response", ex);
 		}
+	}
+	private boolean isProcessingExpired(
+	        IdempotencyRecord record) {
+
+	    if (record.getProcessingStartedAt() == null) {
+
+	        return false;
+	    }
+
+	    return record.getProcessingStartedAt()
+	            .plusMinutes(
+	                    PROCESSING_TIMEOUT_MINUTES)
+	            .isBefore(
+	                    LocalDateTime.now());
 	}
 }

@@ -4,6 +4,9 @@ import static payment.system.app.constants.ApiConstants.WALLET_TRANSFER_ENDPOINT
 
 import java.nio.charset.StandardCharsets;
 
+import org.slf4j.MDC;
+
+import static payment.system.app.constants.LogMessages.MDC_REQUEST_ID;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
@@ -64,6 +67,9 @@ public class WalletRetryService {
 
         return restClient.post()
                 .uri(url)
+                .header(
+                        "X-Correlation-Id",
+                        MDC.get(MDC_REQUEST_ID))
                 .body(request)
                 .retrieve()
                 .onStatus(

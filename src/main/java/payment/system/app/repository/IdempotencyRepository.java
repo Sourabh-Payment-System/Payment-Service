@@ -29,7 +29,6 @@ public interface IdempotencyRepository
             @Param("idempotencyKey")
             String idempotencyKey);
 
-
     @Modifying
     @Query(
             value = """
@@ -37,6 +36,8 @@ public interface IdempotencyRepository
                     (
                         idempotency_key,
                         transaction_reference,
+                        request_hash,
+                        processing_started_at,
                         status,
                         response_json,
                         created_at,
@@ -47,6 +48,8 @@ public interface IdempotencyRepository
                     (
                         :idempotencyKey,
                         :transactionReference,
+                        :requestHash,
+                        NOW(),
                         'PROCESSING',
                         NULL,
                         NOW(),
@@ -61,5 +64,7 @@ public interface IdempotencyRepository
             @Param("idempotencyKey")
             String idempotencyKey,
             @Param("transactionReference")
-            String transactionReference);
+            String transactionReference,
+            @Param("requestHash")
+            String requestHash);
 }

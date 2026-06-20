@@ -3,6 +3,7 @@ package payment.system.app.utility;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
+import static payment.system.app.constants.TransactionConstants.TRANSACTION_PREFIX;
 
 @Component
 public class ReferenceGenerator {

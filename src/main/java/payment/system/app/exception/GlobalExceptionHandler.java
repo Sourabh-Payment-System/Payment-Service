@@ -58,12 +58,18 @@ public class GlobalExceptionHandler {
                 .getAllErrors()
                 .forEach(error -> {
 
-                    String fieldName =
-                            ((FieldError) error).getField();
+                	if (error instanceof FieldError fieldError) {
 
-                    validationErrors.put(
-                            fieldName,
-                            error.getDefaultMessage());
+                	    validationErrors.put(
+                	            fieldError.getField(),
+                	            fieldError.getDefaultMessage());
+
+                	} else {
+
+                	    validationErrors.put(
+                	            error.getObjectName(),
+                	            error.getDefaultMessage());
+                	}
                 });
         
         log.warn(

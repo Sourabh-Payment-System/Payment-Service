@@ -10,4 +10,6 @@ public final class TransactionConstants {
     public static final int TRANSACTION_REFERENCE_LENGTH = 12;
 
     public static final String SUCCESS_STATUS = "SUCCESS";
+    
+    public static final long PROCESSING_TIMEOUT_MINUTES = 5;
 }
