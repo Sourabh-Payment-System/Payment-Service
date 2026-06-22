@@ -92,6 +92,10 @@ public class IdempotencyService {
         record.setResponseJson(
                 responseJson);
 
+        // Processing finished
+        record.setProcessingStartedAt(
+                null);
+
         record.setCompletedAt(
                 LocalDateTime.now());
 
@@ -123,6 +127,10 @@ public class IdempotencyService {
         record.setStatus(
                 IdempotencyStatus.FAILED);
 
+        // Processing finished
+        record.setProcessingStartedAt(
+                null);
+
         record.setCompletedAt(
                 LocalDateTime.now());
 
@@ -133,6 +141,7 @@ public class IdempotencyService {
                 "Idempotency record marked FAILED. key={}",
                 idempotencyKey);
     }
+    
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void resetToProcessing(
             String idempotencyKey,

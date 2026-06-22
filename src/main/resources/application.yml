@@ -99,3 +99,6 @@ resilience4j:
 
         ignoreExceptions:
           - payment.system.app.exception.BadRequestException
+jwt:
+  secret: myVeryStrongSecretKeyForPaymentService123456
+  expiration: 86400000		

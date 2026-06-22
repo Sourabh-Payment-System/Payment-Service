@@ -4,9 +4,11 @@ import static payment.system.app.constants.ErrorMessages.SENDER_RECEIVER_SAME;
 import static payment.system.app.constants.LogMessages.MDC_TRANSACTION_ID;
 import static payment.system.app.constants.LogMessages.MDC_TRANSACTION_REF;
 import static payment.system.app.constants.LogMessages.SAME_USER_TRANSFER_ATTEMPT;
-import static payment.system.app.constants.TransactionConstants.TRANSACTION_REFERENCE_LENGTH;
-import static payment.system.app.constants.TransactionConstants.TRANSACTION_PREFIX;
 import static payment.system.app.constants.TransactionConstants.PROCESSING_TIMEOUT_MINUTES;
+import static payment.system.app.constants.TransactionConstants.TRANSACTION_PREFIX;
+import static payment.system.app.constants.TransactionConstants.TRANSACTION_REFERENCE_LENGTH;
+
+import java.time.LocalDateTime;
 
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
@@ -30,7 +32,6 @@ import payment.system.app.exception.PaymentProcessingException;
 import payment.system.app.facade.WalletFacadeService;
 import payment.system.app.mapper.TransactionMapper;
 import payment.system.app.utility.ReferenceGenerator;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -99,7 +100,7 @@ public class PaymentService {
 				    if (isProcessingExpired(record)) {
 
 				        transactionReference =
-				        		TRANSACTION_PREFIX+generateTransactionReference();
+				        		generateTransactionReference();
 
 				        MDC.put(
 				                MDC_TRANSACTION_REF,

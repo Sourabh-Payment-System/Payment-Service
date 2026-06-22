@@ -31,6 +31,7 @@ import payment.system.app.repository.TransactionRepository;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
+    private final TransactionStatusService transactionStatusService;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Transaction createPendingTransaction(
@@ -174,18 +175,11 @@ public class TransactionService {
             PaymentStatus status) {
 
         try {
-
-            updateTransactionStatus(
+            transactionStatusService.updateStatus(
                     transactionId,
                     status);
-
         } catch (Exception ex) {
-
-            log.error(
-                    "Failed to update transaction status safely. transactionId={}, status={}",
-                    transactionId,
-                    status,
-                    ex);
+            log.error("Failed", ex);
         }
     }
 

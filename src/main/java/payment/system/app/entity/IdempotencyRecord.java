@@ -31,6 +31,7 @@ import payment.system.app.enums.IdempotencyStatus;
                         columnList = "completed_at")
         })
 @Setter
+@Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -83,6 +84,9 @@ public class IdempotencyRecord {
     private LocalDateTime completedAt;
 
     @Version
-    private Long version;}
+    private Long version;
+
+	
+	}
     
    
