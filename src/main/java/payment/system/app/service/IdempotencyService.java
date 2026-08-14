@@ -18,8 +18,8 @@ import payment.system.app.enums.IdempotencyStatus;
 import payment.system.app.exception.BadRequestException;
 import payment.system.app.exception.IdempotencyRecordNotFoundException;
 import payment.system.app.repository.IdempotencyRepository;
-import payment.system.app.utility.ReferenceGenerator;
-import payment.system.app.utility.TransferRequestHasher;
+import payment.system.app.util.ReferenceGenerator;
+import payment.system.app.util.TransferRequestHasher;
 
 @Service
 @RequiredArgsConstructor

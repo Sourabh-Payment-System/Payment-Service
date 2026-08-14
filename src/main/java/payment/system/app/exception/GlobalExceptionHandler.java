@@ -1,9 +1,11 @@
 package payment.system.app.exception;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.MDC;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,7 +44,7 @@ public class GlobalExceptionHandler {
                 ex.getErrorCode().getHttpStatus(),
                 ex.getErrorCode(),
                 ex.getMessage(),
-                request.getRequestURI(),
+                request,
                 null);
     }
 
@@ -81,7 +83,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 ErrorCode.VALIDATION_ERROR,
                 "Input validation failed",
-                request.getRequestURI(),
+                request,
                 validationErrors);
     }
 
@@ -103,7 +105,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 ErrorCode.VALIDATION_ERROR,
                 "Validation failed",
-                request.getRequestURI(),
+                request,
                 validationErrors);
     }
 
@@ -118,7 +120,7 @@ public class GlobalExceptionHandler {
                 "Required request parameter '"
                         + ex.getParameterName()
                         + "' is missing",
-                request.getRequestURI(),
+                request,
                 null);
     }
 
@@ -132,7 +134,7 @@ public class GlobalExceptionHandler {
                 ErrorCode.BAD_REQUEST,
                 "Invalid value for parameter: "
                         + ex.getName(),
-                request.getRequestURI(),
+                request,
                 null);
     }
 
@@ -145,7 +147,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 ErrorCode.BAD_REQUEST,
                 "Request body is invalid or malformed",
-                request.getRequestURI(),
+                request,
                 null);
     }
 
@@ -159,7 +161,7 @@ public class GlobalExceptionHandler {
                 ErrorCode.METHOD_NOT_ALLOWED,
                 "HTTP method not supported: "
                         + ex.getMethod(),
-                request.getRequestURI(),
+                request,
                 null);
     }
 
@@ -177,7 +179,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 ErrorCode.DATABASE_ERROR,
                 "Database operation failed",
-                request.getRequestURI(),
+                request,
                 null);
     }
 
@@ -195,7 +197,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 ErrorCode.INTERNAL_SERVER_ERROR,
                 "Something went wrong. Please try again later.",
-                request.getRequestURI(),
+                request,
                 null);
     }
 
@@ -203,7 +205,7 @@ public class GlobalExceptionHandler {
             HttpStatus status,
             ErrorCode errorCode,
             String message,
-            String path,
+            HttpServletRequest request,
             Map<String, String> validationErrors) {
 
         ErrorResponse errorResponse =
@@ -213,8 +215,13 @@ public class GlobalExceptionHandler {
                         .error(status.getReasonPhrase())
                         .errorCode(errorCode.name())
                         .message(message)
-                        .path(path)
-                        .validationErrors(validationErrors)
+                        .path(request.getRequestURI())
+                        .method(request.getMethod())
+                        .correlationId(MDC.get("correlationId"))
+                        .validationErrors(
+                                validationErrors == null
+                                        ? Collections.emptyMap()
+                                        : validationErrors)
                         .build();
 
         return ResponseEntity

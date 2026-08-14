@@ -1,4 +1,4 @@
-package payment.system.app.utility;
+package payment.system.app.util;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

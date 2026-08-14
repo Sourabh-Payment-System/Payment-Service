@@ -1,6 +1,7 @@
 package payment.system.app.dto;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Map;
 
 import lombok.AllArgsConstructor;
@@ -26,5 +27,11 @@ public class ErrorResponse {
 
     private String path;
 
-    private Map<String, String> validationErrors;
+    private String method;
+
+    private String correlationId;
+
+    @Builder.Default
+    private Map<String, String> validationErrors =
+            Collections.emptyMap();
 }

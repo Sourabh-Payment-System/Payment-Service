@@ -15,7 +15,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import payment.system.app.utility.JwtUtil;
+import payment.system.app.util.JwtUtil;
 
 @Component
 @RequiredArgsConstructor

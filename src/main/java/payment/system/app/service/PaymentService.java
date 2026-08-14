@@ -31,7 +31,7 @@ import payment.system.app.exception.IdempotencyRecordNotFoundException;
 import payment.system.app.exception.PaymentProcessingException;
 import payment.system.app.facade.WalletFacadeService;
 import payment.system.app.mapper.TransactionMapper;
-import payment.system.app.utility.ReferenceGenerator;
+import payment.system.app.util.ReferenceGenerator;
 
 @Service
 @RequiredArgsConstructor

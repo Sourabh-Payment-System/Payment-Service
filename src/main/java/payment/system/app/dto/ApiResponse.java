@@ -1,5 +1,11 @@
 package payment.system.app.dto;
 
+import java.time.LocalDateTime;
+
+import org.slf4j.MDC;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,6 +15,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
 
     private boolean success;
@@ -16,6 +23,10 @@ public class ApiResponse<T> {
     private String message;
 
     private T data;
+
+    private LocalDateTime timestamp;
+
+    private String correlationId;
 
     public static <T> ApiResponse<T> success(
             String message,
@@ -25,6 +36,8 @@ public class ApiResponse<T> {
                 .success(true)
                 .message(message)
                 .data(data)
+                .timestamp(LocalDateTime.now())
+                .correlationId(MDC.get("correlationId"))
                 .build();
     }
 
@@ -34,6 +47,8 @@ public class ApiResponse<T> {
         return ApiResponse.<T>builder()
                 .success(false)
                 .message(message)
+                .timestamp(LocalDateTime.now())
+                .correlationId(MDC.get("correlationId"))
                 .build();
     }
 }

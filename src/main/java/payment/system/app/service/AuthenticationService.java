@@ -11,7 +11,7 @@ import payment.system.app.dto.LoginResponse;
 import payment.system.app.entity.User;
 import payment.system.app.exception.BadRequestException;
 import payment.system.app.repository.UserRepository;
-import payment.system.app.utility.JwtUtil;
+import payment.system.app.util.JwtUtil;
 
 @Service
 @RequiredArgsConstructor
