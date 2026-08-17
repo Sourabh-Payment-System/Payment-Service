@@ -7,7 +7,7 @@ import static payment.system.app.constants.LogMessages.*;
 
 import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -21,42 +21,55 @@ import lombok.extern.slf4j.Slf4j;
 import payment.system.app.dto.ApiResponse;
 import payment.system.app.dto.TransactionResponse;
 import payment.system.app.dto.TransferRequest;
+import payment.system.app.security.JwtAuthentication;
 import payment.system.app.service.PaymentService;
 
 @RestController
 @RequestMapping(API_V1_PAYMENTS)
 @RequiredArgsConstructor
-@Validated
 @Slf4j
 public class PaymentController {
 
     private final PaymentService paymentService;
 
     @PostMapping(TRANSFER_ENDPOINT)
+    @PreAuthorize("hasAuthority('CREATE_PAYMENT')")
     public ResponseEntity<ApiResponse<TransactionResponse>> transfer(
+
             @RequestHeader(IDEMPOTENCY_KEY_HEADER)
-            @NotBlank(message = "Idempotency-Key header is mandatory")
+            @NotBlank(
+                    message = "Idempotency-Key header is mandatory")
             String idempotencyKey,
-            @Valid @RequestBody TransferRequest request) {
-    	try {
 
-        MDC.put(
-        		MDC_SENDER_USER_ID,
-                String.valueOf(
-                        request.getSenderUserId()));
+            @Valid
+            @RequestBody
+            TransferRequest request,
 
-        
+            JwtAuthentication authentication) {
 
-        log.info(
-        	    PAYMENT_TRANSFER_INITIATED,
-        	    request.getSenderUserId(),
-        	    request.getReceiverUserId(),
-        	    request.getAmount());
+        Long authenticatedUserId =
+                authentication.getUserId();
+
+        request.setSenderUserId(
+                authenticatedUserId);
+
+        try {
+
+            MDC.put(
+                    MDC_SENDER_USER_ID,
+                    String.valueOf(
+                            authenticatedUserId));
+
+            log.info(
+                    PAYMENT_TRANSFER_INITIATED,
+                    authenticatedUserId,
+                    request.getReceiverUserId(),
+                    request.getAmount());
 
             TransactionResponse response =
                     paymentService.transferMoney(
-                            request,idempotencyKey);
-
+                            request,
+                            idempotencyKey);
 
             log.info(
                     "Payment transfer completed successfully. status={}",
@@ -65,12 +78,12 @@ public class PaymentController {
             return ResponseEntity.ok(
                     ApiResponse.success(
                             PAYMENT_TRANSFER_SUCCESS_MESSAGE,
-                            response));}
-finally {
-		   MDC.remove(MDC_SENDER_USER_ID);
-		   MDC.remove(MDC_TRANSACTION_REF);
-}
+                            response));
 
-        
+        } finally {
+
+            MDC.remove(MDC_SENDER_USER_ID);
+            MDC.remove(MDC_TRANSACTION_REF);
+        }
     }
 }

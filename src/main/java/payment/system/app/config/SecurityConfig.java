@@ -1,106 +1,67 @@
 package payment.system.app.config;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import lombok.RequiredArgsConstructor;
 import payment.system.app.filter.JwtAuthenticationFilter;
-import payment.system.app.service.CustomUserDetailsService;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
-    private final CustomUserDetailsService userDetailsService;
+
+    private final CustomAuthenticationEntryPoint
+            authenticationEntryPoint;
+
+    private final CustomAccessDeniedHandler
+            accessDeniedHandler;
 
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http)
             throws Exception {
 
-        http
+        return http
                 .csrf(csrf -> csrf.disable())
+
+                .formLogin(form -> form.disable())
+
+                .httpBasic(basic -> basic.disable())
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS))
 
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**")
-                        .permitAll()
-
-                        .requestMatchers("/api/admin/**")
-                        .hasRole("ADMIN")
-
-                        .anyRequest()
-                        .authenticated())
-
                 .exceptionHandling(ex ->
                         ex.authenticationEntryPoint(
-                                (request, response, authException) -> {
+                                authenticationEntryPoint)
+                          .accessDeniedHandler(
+                                accessDeniedHandler))
 
-                                    response.setStatus(401);
-                                    response.setContentType(
-                                            "application/json");
+                .authorizeHttpRequests(auth ->
+                        auth
+                                .requestMatchers(
+                                        "/actuator/health")
+                                .permitAll()
 
-                                    response.getWriter().write(
-                                            """
-                                            {
-                                                "success": false,
-                                                "message": "Unauthorized"
-                                            }
-                                            """);
-                                }))
-
-                .authenticationProvider(
-                        authenticationProvider())
+                                .anyRequest()
+                                .authenticated())
 
                 .addFilterBefore(
                         jwtFilter,
-                        UsernamePasswordAuthenticationFilter.class);
+                        UsernamePasswordAuthenticationFilter.class)
 
-        return http.build();
-    }
-
-    @Bean
-    AuthenticationProvider authenticationProvider() {
-
-        DaoAuthenticationProvider provider =
-                new DaoAuthenticationProvider();
-
-        provider.setUserDetailsService(
-                userDetailsService);
-
-        provider.setPasswordEncoder(
-                passwordEncoder());
-
-        return provider;
-    }
-
-    @Bean
-    PasswordEncoder passwordEncoder() {
-
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    AuthenticationManager authenticationManager(
-            AuthenticationConfiguration configuration)
-            throws Exception {
-
-        return configuration.getAuthenticationManager();
+                .build();
     }
 }

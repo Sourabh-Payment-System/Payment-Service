@@ -1,7 +1,6 @@
 package payment.system.app.util;
 
-import java.security.Key;
-import java.util.Date;
+import java.util.Base64;
 
 import javax.crypto.SecretKey;
 
@@ -13,7 +12,6 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import payment.system.app.config.JwtProperties;
-import payment.system.app.entity.User;
 
 @Component
 @RequiredArgsConstructor
@@ -23,51 +21,40 @@ public class JwtUtil {
 
     private SecretKey getSigningKey() {
 
-        byte[] keyBytes =
-                Decoders.BASE64.decode(
-                        jwtProperties.getSecret());
+        String secret = jwtProperties.getSecretBase64();
+
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalArgumentException(
+                    "JWT secret must be configured");
+        }
+
+        byte[] keyBytes = Decoders.BASE64.decode(secret);
+
+        if (keyBytes.length < 32) {
+            throw new IllegalArgumentException(
+                    "JWT key must be at least 256 bits");
+        }
 
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateToken(
-            User user) {
-
-        return Jwts.builder()
-                .subject(user.getUsername())
-                .claim("userId", user.getId())
-                .claim("role", user.getRole())
-                .issuedAt(new Date())
-                .expiration(
-                        new Date(
-                                System.currentTimeMillis()
-                                        + jwtProperties.getExpiration()))
-                .signWith(getSigningKey())
-                .compact();
-    }
-
-    public Claims extractClaims(
-            String token) {
+    /**
+     * Validates:
+     * - signature
+     * - expiration
+     * - issuer
+     * - audience
+     *
+     * Returns claims only when the JWT is valid.
+     */
+    public Claims validateToken(String token) {
 
         return Jwts.parser()
                 .verifyWith(getSigningKey())
+                .requireIssuer(jwtProperties.getIssuer())
+                .requireAudience(jwtProperties.getAudience())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-    }
-
-    public boolean isTokenValid(
-            String token) {
-
-        try {
-
-            return extractClaims(token)
-                    .getExpiration()
-                    .after(new Date());
-
-        } catch (Exception ex) {
-
-            return false;
-        }
     }
 }

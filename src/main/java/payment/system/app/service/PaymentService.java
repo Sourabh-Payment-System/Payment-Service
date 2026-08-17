@@ -153,7 +153,7 @@ public class PaymentService {
 
 			log.info(
 					"Payment initiated. transactionRef={}, idempotencyKey={}, senderUserId={}, receiverUserId={}, amount={}",
-					transactionReference, idempotencyKey, request.getSenderUserId(), request.getReceiverUserId(),
+				transactionReference, idempotencyKey, request.getSenderUserId(), request.getReceiverUserId(),
 					request.getAmount());
 
 			transaction = transactionService.createPendingTransaction(request, transactionReference);

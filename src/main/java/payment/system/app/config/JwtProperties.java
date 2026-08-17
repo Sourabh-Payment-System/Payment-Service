@@ -10,6 +10,7 @@ import lombok.Data;
 @Component
 public class JwtProperties {
 
-    private String secret;
-    private long expiration;
+    private String secretBase64;
+    private String issuer;
+    private String audience;
 }

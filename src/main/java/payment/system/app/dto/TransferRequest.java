@@ -11,10 +11,6 @@ import lombok.Data;
 @Data
 public class TransferRequest {
 
-    @NotNull(message = "Sender userId is required")
-    @Positive(message = "Sender userId must be positive")
-    private Long senderUserId;
-
     @NotNull(message = "Receiver userId is required")
     @Positive(message = "Receiver userId must be positive")
     private Long receiverUserId;
@@ -25,4 +21,10 @@ public class TransferRequest {
             inclusive = true,
             message = "Amount must be greater than 0")
     private BigDecimal amount;
+
+    /*
+     * This is populated internally from the JWT.
+     * It is NOT accepted from the client.
+     */
+    private Long senderUserId;
 }
